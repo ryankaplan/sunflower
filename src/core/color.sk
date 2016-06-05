@@ -1,0 +1,52 @@
+class Color {
+  # 0-1 values
+  var r double
+  var g double
+  var b double
+  var a double
+
+  def toVec4 Float32Array {
+    return Float32Array.new([r, g, b, a])
+  }
+
+  def toCSS string {
+    return "rgba(\((r * 255) as int), \((g * 255) as int), \((b * 255) as int), \(a))"
+  }
+}
+
+namespace Color {
+  const darkGrey = Color.fromHex(0x333333)
+  const mediumGrey = Color.fromHex(0x666666)
+  const lightGrey = Color.fromHex(0x999999)
+  const veryLightGrey = Color.fromHex(0xEFEFEF)
+  const purple = Color.fromHex(0x8F4CFF)
+  const white = Color.fromHex(0xFFFFFF)
+  const black = Color.fromHex(0x000000)
+  const clear = Color.new(0, 0, 0, 0)
+
+  def encodeColorValues(a int, b int) int {
+    if a < 0 || a > 255 {
+      throw Error.new("First parameter \(a) is out of bounds. Must be between 0 and 255.")
+    }
+    if b < 0 || b > 255 {
+      throw Error.new("Second parameter \(b) is out of bounds. Must be between 0 and 255.")
+    }
+    return a * 256 + b
+  }
+
+  def decodeColorValues(encoded int) List<int> {
+    return [
+      encoded / 256,
+      encoded % 256
+    ]
+  }
+
+  def fromHex(number int) Color {
+    return Color.new(
+      ((number >> 16) & 255) / 255.0,
+      ((number >> 8) & 255) / 255.0,
+      (number & 255) / 255.0,
+      1.0
+    )
+  }
+}

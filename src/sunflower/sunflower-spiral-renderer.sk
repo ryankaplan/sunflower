@@ -1,0 +1,88 @@
+class SunflowerSpiralRenderer {
+  const _wham Wham
+  const _ctx WebGLRenderingContext
+  const _canvas HTMLCanvasElement
+
+  const _sunflower Wham.Program
+  const _renderTexture Wham.Program
+  const _quadBuffer Wham.Buffer
+  const _tempTexture Wham.Texture
+  const _framebuffer Wham.Framebuffer
+
+  def new(canvas HTMLCanvasElement) {
+    _canvas = canvas
+
+    if _canvas.width != _canvas.height {
+      throw Error.new("Expected canvas width and height to be the same")
+    }
+
+    if !isPowerOfTwo(canvas.width) {
+      throw Error.new("Expect canvas size to be a power of two")
+    }
+
+    _wham = Wham.new(_canvas)
+    if _wham.ctx == null {
+      throw Error.new("Failed to initialize Wham")
+    }
+    _ctx = _wham.ctx
+
+    _ctx.disable(_wham.ctx.DEPTH_TEST)
+
+    _sunflower = Wham.Program.new(_ctx, GLSLX_SOURCE_V_COPY_POSITION, GLSLX_SOURCE_F_SUNFLOWER_SPIRAL)
+    _renderTexture = Wham.Program.new(_wham.ctx, GLSLX_SOURCE_V_COPY_POSITION, GLSLX_SOURCE_F_RENDER_TEXTURE)
+
+
+    _quadBuffer = Wham.Buffer.new(_ctx)
+    _quadBuffer.update(Wham.QUAD2, _ctx.STATIC_DRAW)
+
+    var opts = Wham.TextureOptions.new(_ctx, _ctx.RGBA, _ctx.REPEAT, _ctx.NEAREST, _ctx.UNSIGNED_BYTE)
+    _tempTexture = Wham.Texture.new(_ctx, opts)
+    _tempTexture.clear(_canvas.width, _canvas.height)
+
+    _framebuffer = Wham.Framebuffer.create(_ctx)
+  }
+
+  def draw(offset Vector, scale double) {
+    _renderToTempCanvas(offset, scale)
+    _renderToOutputCanvas
+  }
+
+  def _renderToTempCanvas(offset Vector, scale double) {
+    # We're going to render to _tempTexture
+    _framebuffer.attach(_tempTexture)
+    _checkFramebufferCompletion
+
+    _wham.ctx.viewport(0, 0, _canvas.width, _canvas.height)
+    _sunflower
+      .use
+      .attrib(GLSLX_NAME_QUAD, _quadBuffer, 2)
+      .uniform(GLSLX_NAME_I_RESOLUTION, Float32Array.new([_canvas.width, _canvas.height]))
+      .uniform(GLSLX_NAME_I_OFFSET, Float32Array.new([ offset.x, offset.y ]))
+      .uniform(GLSLX_NAME_I_SCALE, scale)
+      .draw(_ctx.TRIANGLE_STRIP, 4)
+  }
+
+  def _renderToOutputCanvas {
+    _wham.defaultFramebuffer.bind
+    _checkFramebufferCompletion
+
+    _tempTexture.bind(0)
+    _wham.ctx.viewport(0, 0, _canvas.width, _canvas.height)
+    _renderTexture
+      .use
+      .attrib(GLSLX_NAME_QUAD, _quadBuffer, 2)
+      .uniform(GLSLX_NAME_I_INPUT_TEXTURE, 0)
+      .uniform(GLSLX_NAME_I_RESOLUTION, Float32Array.new([ _canvas.width, _canvas.height ]))
+      .draw(_ctx.TRIANGLE_STRIP, 4)
+  }
+
+  def _checkFramebufferCompletion {
+    if !RELEASE {
+      const ctx = _wham.ctx
+      var check = ctx.checkFramebufferStatus(ctx.FRAMEBUFFER)
+      if check != ctx.FRAMEBUFFER_COMPLETE {
+        throw Error.new("Framebuffer completion error")
+      }
+    }
+  }
+}

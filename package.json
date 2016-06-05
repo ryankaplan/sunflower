@@ -1,0 +1,15 @@
+{
+  "name": "sunflower.sk",
+  "version": "0.1.0",
+  "description": "Sunflower spiral on the GPU",
+  "repository": {
+    "type": "git",
+    "url": "git@github.com:ryankaplan/sunflower.git"
+  },
+  "license": "SEE LICENSE IN <LICENSE>",
+  "devDependencies": {
+    "skew": "^0.7.38",
+    "fast-watch": "^1.0.0",
+    "glslx": "^0.1.19"
+  }
+}

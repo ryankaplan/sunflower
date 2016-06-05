@@ -1,0 +1,99 @@
+
+const DEMO_SIZE = 512
+
+def sizeCanvas(canvas HTMLCanvasElement, size int) {
+  canvas.width = size * Browser.powerOfTwoLessThanDevicePixelRatio
+  canvas.height = size * Browser.powerOfTwoLessThanDevicePixelRatio
+  canvas.style.width = "\(size)px"
+  canvas.style.height = "\(size)px"
+}
+
+def tryOrDisplayError(container HTMLElement, tryBlock fn()) {
+  try {
+    tryBlock()
+  } catch temp dynamic {
+    container.innerHTML = ""
+    const div = document.createElement("div")
+    div.style.textAlign = "center"
+    div.style.margin = "40px auto"
+    div.style.backgroundColor = "#FCFFD3"
+    div.style.padding = "40px"
+    div.style.fontFamily = "Helvetica"
+    div.style.lineHeight = "40px"
+    div.textContent = "Demo disabled. Couldn't start WebGL."
+    container.appendChild(div)
+  }
+}
+
+# See here to understand how this works:
+# http://www.skorks.com/2010/10/write-a-function-to-determine-if-a-number-is-a-power-of-2/
+def isPowerOfTwo(number int) bool {
+    return number != 0 && ((number & (number - 1)) == 0)
+}
+
+class SunflowerDemo {
+  const _container HTMLElement
+  var _canvas HTMLCanvasElement
+  const _mouseBehaviors = MouseBehaviorManager.new
+  var _demo SunflowerSpiralRenderer
+
+  def new(containerID string) {
+    _container = document.getElementById(containerID)
+    (_container as dynamic).removeAttribute("style")
+  }
+
+  def run {
+    _canvas = document.createElement("canvas") as HTMLCanvasElement
+    sizeCanvas(_canvas, DEMO_SIZE)
+    _container.appendChild(_canvas)
+
+    tryOrDisplayError(_container, => {
+      _demo = SunflowerSpiralRenderer.new(_canvas)
+    })
+
+    _mouseBehaviors.listenOnElement(_canvas)
+
+
+    # Set up the drag behavior
+    var lastOffset = Vector.new(_canvas.width, _canvas.height) / Browser.powerOfTwoLessThanDevicePixelRatio
+    var scale = 5.0
+
+    const dragBehavior = DragBehavior.new(_canvas)
+    dragBehavior.onUpdate = (type UpdateType) => {
+      const offset = Vector.new(dragBehavior.offset.x, - dragBehavior.offset.y) * Browser.powerOfTwoLessThanDevicePixelRatio
+      switch type {
+        case .CHANGE {
+          _render(lastOffset + offset, scale)
+        }
+        case .COMMIT {
+          lastOffset += offset
+          _render(lastOffset, scale)
+        }
+      }
+    }
+    _mouseBehaviors.register(dragBehavior)
+    _mouseBehaviors.onScroll((e MouseEvent) => {
+      const deltaY = (e.mouseEvent as dynamic).deltaY as double
+      scale -= deltaY * 0.01
+      scale = Math.max(scale, 4.95)
+      _render(lastOffset, scale)
+    })
+
+    _render(lastOffset, scale)
+  }
+
+  def _render(offset Vector, scale double) {
+    const start = window.performance.now
+    _demo.draw(offset, scale)
+    const end = window.performance.now
+    console.log("Took \(end - start)ms")
+  }
+}
+
+@entry
+def main {
+  window.addEventListener("load", => {
+    SunflowerDemo.new("demo-container").run
+  })
+}
+

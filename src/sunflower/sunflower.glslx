@@ -1,0 +1,88 @@
+precision highp float;
+precision highp int;
+
+uniform vec2 iResolution;
+uniform vec2 iOffset;
+uniform float iScale;
+uniform sampler2D iInputTexture;
+
+attribute vec2 quad;
+
+const float PI = 3.141592653589793238462643383;
+const float PHI = 0.6180339887498949;
+
+vec2 polarToCartesian(float r, float theta) {
+  return vec2(r * cos(theta), r * sin(theta));
+}
+
+// Vertex shader for drawing a quad
+////////////////////////////////////////////////////////////////////////
+
+export void vCopyPosition() {
+  gl_Position = vec4(quad, 0.0, 1.0);
+}
+
+bool shouldFillPixel(vec2 pt) {
+  float expand = iScale;
+  float DOT_RADIUS = 1.0;
+  vec2 center = iResolution / 2.0;
+  pt -= iOffset;
+  pt /= expand;
+
+  float radius = length(pt);
+  float lower = radius - DOT_RADIUS;
+  float upper = radius + DOT_RADIUS;
+
+  // Walk through all square roots between lower and upper.
+  float lowerSquare = floor(lower * lower);
+  float upperSquare = ceil(upper * upper);
+  for (int i = 0; i < 400; i++) {
+    float square = lowerSquare + float(i);
+    if (square > upperSquare) {
+      break;
+    }
+
+    float root = sqrt(square);
+
+    // round
+    float possibleN = floor(root * root + 0.5);
+    float desiredAngle = 2.0 * PI * PHI * possibleN;
+    vec2 desiredPt = polarToCartesian(root, desiredAngle);
+    if (length(desiredPt - pt) < (DOT_RADIUS / expand)) {
+      return true;
+    }
+  }
+
+  return false;
+}
+
+export void fSunflowerSpiral() {
+  vec2 uv = gl_FragCoord.xy / iResolution;
+  if (shouldFillPixel(gl_FragCoord.xy)) {
+    gl_FragColor = vec4(1.0);
+  } else {
+    gl_FragColor = vec4(0.0);
+  }
+}
+
+// Renders Sunflower data to screen
+////////////////////////////////////////////////////////////////////////
+
+const float SEARCH_SIZE = 10.0;
+
+export void fRenderTexture() {
+  for (float x = - SEARCH_SIZE; x < SEARCH_SIZE; x++) {
+    for (float y = - SEARCH_SIZE; y < SEARCH_SIZE; y++) {
+
+      vec2 uv = (gl_FragCoord.xy + vec2(x, y)) / iResolution;
+
+      vec4 color = texture2D(iInputTexture, uv);
+      if (length(color) > 0.001) {
+        gl_FragColor = vec4(1.0);
+        return;
+      }
+    }
+  }
+
+  gl_FragColor = vec4(0.0, 0.0, 0.0, 1.0);
+}
