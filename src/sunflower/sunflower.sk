@@ -1,4 +1,4 @@
-class SunflowerSpiralRenderer {
+class Sunflower {
   const _wham Wham
   const _ctx WebGLRenderingContext
   const _canvas HTMLCanvasElement

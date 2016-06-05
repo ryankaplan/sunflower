@@ -8,12 +8,9 @@ uniform sampler2D iInputTexture;
 
 attribute vec2 quad;
 
-const float PI = 3.141592653589793238462643383;
-const float PHI = 0.6180339887498949;
-
-vec2 polarToCartesian(float r, float theta) {
-  return vec2(r * cos(theta), r * sin(theta));
-}
+const highp float PI = 3.141592653589793238462643383279502884197169399375105820974;
+const highp float PHI = 0.618033988749894848204586834365638117720309179805762862135;
+const highp float GAMMA = 3.883222077450933154693731259925391915269339787692096599014;
 
 // Vertex shader for drawing a quad
 ////////////////////////////////////////////////////////////////////////
@@ -22,47 +19,46 @@ export void vCopyPosition() {
   gl_Position = vec4(quad, 0.0, 1.0);
 }
 
-bool shouldFillPixel(vec2 pt) {
-  float expand = iScale;
-  float DOT_RADIUS = 1.0;
-  vec2 center = iResolution / 2.0;
-  pt -= iOffset;
-  pt /= expand;
+// Pixel shader for Sunflower spiral
+////////////////////////////////////////////////////////////////////////
+
+const float DOT_RADIUS = 1.0;
+
+vec2 polarToCartesian(float r, float theta) {
+  return r * vec2(cos(theta), sin(theta));
+}
+
+export void fSunflowerSpiral() {
+  vec4 pixelColor = vec4(0.0);
+
+  vec2 pt = gl_FragCoord.xy;
+  pt /= iScale;
+  pt -= iOffset / iScale;
 
   float radius = length(pt);
-  float lower = radius - DOT_RADIUS;
-  float upper = radius + DOT_RADIUS;
+  float margin = DOT_RADIUS / iScale;
+  float lower = radius - margin;
+  float upper = radius + margin;
 
-  // Walk through all square roots between lower and upper.
+  // We want to find all points, within margin of radius, that are
+  // square roots of a whole number.
   float lowerSquare = floor(lower * lower);
   float upperSquare = ceil(upper * upper);
-  for (int i = 0; i < 400; i++) {
+  for (int i = 0; i < 500; i++) {
     float square = lowerSquare + float(i);
     if (square > upperSquare) {
       break;
     }
 
     float root = sqrt(square);
-
-    // round
-    float possibleN = floor(root * root + 0.5);
-    float desiredAngle = 2.0 * PI * PHI * possibleN;
+    float desiredAngle = GAMMA * square;
     vec2 desiredPt = polarToCartesian(root, desiredAngle);
-    if (length(desiredPt - pt) < (DOT_RADIUS / expand)) {
-      return true;
+    if (length(desiredPt - pt) < margin) {
+      pixelColor = vec4(1.0);
     }
   }
 
-  return false;
-}
-
-export void fSunflowerSpiral() {
-  vec2 uv = gl_FragCoord.xy / iResolution;
-  if (shouldFillPixel(gl_FragCoord.xy)) {
-    gl_FragColor = vec4(1.0);
-  } else {
-    gl_FragColor = vec4(0.0);
-  }
+  gl_FragColor = pixelColor;
 }
 
 // Renders Sunflower data to screen

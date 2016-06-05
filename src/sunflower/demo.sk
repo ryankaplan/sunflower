@@ -31,11 +31,11 @@ def isPowerOfTwo(number int) bool {
     return number != 0 && ((number & (number - 1)) == 0)
 }
 
-class SunflowerDemo {
+class Demo {
   const _container HTMLElement
   var _canvas HTMLCanvasElement
   const _mouseBehaviors = MouseBehaviorManager.new
-  var _demo SunflowerSpiralRenderer
+  var _demo Sunflower
 
   def new(containerID string) {
     _container = document.getElementById(containerID)
@@ -48,7 +48,7 @@ class SunflowerDemo {
     _container.appendChild(_canvas)
 
     tryOrDisplayError(_container, => {
-      _demo = SunflowerSpiralRenderer.new(_canvas)
+      _demo = Sunflower.new(_canvas)
     })
 
     _mouseBehaviors.listenOnElement(_canvas)
@@ -56,7 +56,7 @@ class SunflowerDemo {
 
     # Set up the drag behavior
     var lastOffset = Vector.new(_canvas.width, _canvas.height) / Browser.powerOfTwoLessThanDevicePixelRatio
-    var scale = 5.0
+    var scale = 15.0
 
     const dragBehavior = DragBehavior.new(_canvas)
     dragBehavior.onUpdate = (type UpdateType) => {
@@ -76,6 +76,7 @@ class SunflowerDemo {
       const deltaY = (e.mouseEvent as dynamic).deltaY as double
       scale -= deltaY * 0.01
       scale = Math.max(scale, 4.95)
+      console.log(scale)
       _render(lastOffset, scale)
     })
 
@@ -83,6 +84,7 @@ class SunflowerDemo {
   }
 
   def _render(offset Vector, scale double) {
+    console.log("Offset \(offset) and scale \(scale)")
     const start = window.performance.now
     _demo.draw(offset, scale)
     const end = window.performance.now
@@ -93,7 +95,7 @@ class SunflowerDemo {
 @entry
 def main {
   window.addEventListener("load", => {
-    SunflowerDemo.new("demo-container").run
+    Demo.new("demo-container").run
   })
 }
 
